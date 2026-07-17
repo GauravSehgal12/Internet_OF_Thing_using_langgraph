@@ -1,13 +1,29 @@
-from backend.Nodes.understand import understand
+from backend.graph import graph
 
-state = {
-
-    "messages": [],
-
-    "command": "Turn on bedroom light"
-
+config = {
+    "configurable": {
+        "thread_id": "gaurav"
+    }
 }
 
-result = understand(state)
+# First command
+result = graph.invoke(
+    {
+        "messages": [],
+        "command": "Turn on bedroom light"
+    },
+    config=config
+)
 
-print(result)
+print(result["response"])
+
+# Second command
+result = graph.invoke(
+    {
+        "messages": [],
+        "command": "Is the bedroom light on?"
+    },
+    config=config
+)
+
+print(result["response"])

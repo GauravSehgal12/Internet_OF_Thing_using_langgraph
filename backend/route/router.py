@@ -11,6 +11,9 @@ def route(state):
     # Device control
     if state["intent"] == "device_control":
         return "execute"
+    
+    if state["intent"] == "status_query":
+        return "status"
 
     # Unknown intent
     return "clarify"
