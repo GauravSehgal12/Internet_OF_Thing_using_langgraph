@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from get_llm import get_llm
+from backend.get_llm import get_llm
 
 load_dotenv()
 
