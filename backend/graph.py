@@ -5,37 +5,45 @@ from langgraph.graph import StateGraph, START, END
 from backend.get_llm import get_llm
 from backend.state import AmbientState
 from backend.prompts import SYSTEM_PROMPT
-from backend.device import DEVICE_STATUS
+from backend.device import update_device
 
 
+# -----------------------------
+# Initialize LLM
+# -----------------------------
 llm = get_llm(
     model="llama-3.3-70b-versatile",
     temperature=0
 )
 
 
+# -----------------------------
+# Planner Node
+# -----------------------------
 def planner(state: AmbientState):
 
     prompt = f"""
 {SYSTEM_PROMPT}
 
 User Command:
-
 {state["command"]}
 """
 
     response = llm.invoke(prompt)
 
     content = response.content
+
+    # Handle Groq returning list content
     if isinstance(content, list):
-        content = "\n".join(
-            item if isinstance(item, str) else json.dumps(item)
+        content = "".join(
+            item if isinstance(item, str)
+            else str(item)
             for item in content
         )
-    else:
-        content = str(content)
+
     content = content.strip()
 
+    # Remove markdown if present
     if content.startswith("```"):
         content = (
             content
@@ -44,55 +52,131 @@ User Command:
             .strip()
         )
 
-    data = json.loads(content)
+    try:
 
-    return {
+        data = json.loads(content)
 
-        "room": data["room"],
+        return {
 
-        "device": data["device"],
+            "room": data["room"],
 
-        "action": data["action"],
+            "device": data["device"],
 
-        "status": data["status"],
+            "action": data["action"],
 
-        "response": data["response"]
-    }
+            "status": data["status"],
+
+            "response": data["response"]
+        }
+
+    except Exception:
+
+        return {
+
+            "room": "",
+
+            "device": "",
+
+            "action": "",
+
+            "status": "",
+
+            "response": "Sorry, I could not understand the command."
+        }
 
 
+# -----------------------------
+# Executor Node
+# -----------------------------
 def executor(state: AmbientState):
 
-    device_name = f"{state['room']} {state['device']}"
+    room = state["room"]
+    device = state["device"]
+    status = state["status"]
 
-    if device_name in DEVICE_STATUS:
+    # Build full device name
+    if device.lower() == "light":
 
-        DEVICE_STATUS[device_name] = state["status"]
+        device_name = f"{room} Light"
 
-    elif state["device"] == "Fan":
+    else:
 
-        DEVICE_STATUS["Fan"] = state["status"]
+        device_name = device
 
-    elif state["device"] == "AC":
-
-        DEVICE_STATUS["AC"] = state["status"]
-
-    elif state["device"] == "Door":
-
-        DEVICE_STATUS["Door"] = state["status"]
+    # Update simulated device state
+    update_device(
+        device_name,
+        status
+    )
 
     return {}
 
 
+# -----------------------------
+# Build LangGraph
+# -----------------------------
 builder = StateGraph(AmbientState)
 
-builder.add_node("planner", planner)
+builder.add_node(
+    "planner",
+    planner
+)
 
-builder.add_node("executor", executor)
+builder.add_node(
+    "executor",
+    executor
+)
 
-builder.add_edge(START, "planner")
+builder.add_edge(
+    START,
+    "planner"
+)
 
-builder.add_edge("planner", "executor")
+builder.add_edge(
+    "planner",
+    "executor"
+)
 
-builder.add_edge("executor", END)
+builder.add_edge(
+    "executor",
+    END
+)
 
 graph = builder.compile()
+
+
+# -----------------------------
+# Local Testing
+# -----------------------------
+if __name__ == "__main__":
+
+    print("====== Ambient Smart Home Agent ======\n")
+
+    initial_state : AmbientState = {
+
+        "command": "Turn on the bedroom light",
+
+        "room": "",
+
+        "device": "",
+
+        "action": "",
+
+        "status": "",
+
+        "response": ""
+    }
+
+    result = graph.invoke(initial_state)
+
+    print("LLM Response")
+    print("------------------------")
+
+    print(result["response"])
+
+    print()
+
+    print("Room      :", result["room"])
+    print("Device    :", result["device"])
+    print("Action    :", result["action"])
+    print("Status    :", result["status"])
