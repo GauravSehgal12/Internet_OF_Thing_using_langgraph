@@ -1,7 +1,19 @@
+from langchain_core.messages import AIMessage
+
+
 def clarify(state):
+
+    question = state.get(
+        "clarification_question",
+        "Can you clarify your request?"
+    )
 
     return {
 
-        "response": state["clarification_question"]
+        "messages": [
+            AIMessage(content=question)
+        ],
+
+        "response": question
 
     }
