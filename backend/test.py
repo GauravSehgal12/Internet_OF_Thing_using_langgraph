@@ -1,13 +1,13 @@
-from backend.executor import executor
+from backend.Nodes.understand import understand
 
 state = {
 
-    "room": "Bedroom",
+    "messages": [],
 
-    "device": "Light",
-
-    "action": "turn_on"
+    "command": "Turn on bedroom light"
 
 }
 
-print(executor(state))
+result = understand(state)
+
+print(result)

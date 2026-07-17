@@ -1,60 +1,75 @@
-from langgraph.graph import StateGraph, START, END
-from langchain_core.runnables import RunnableConfig
+from langgraph.graph import (
+    StateGraph,
+    START,
+    END
+)
 
-from backend.state import AmbientState
 from backend.short_memory import memory
-from backend.planner import planner
-from backend.executor import executor
+from backend.state import AmbientState
 
+from backend.Nodes.understand import understand
+from backend.Nodes.execute import execute
+from backend.Nodes.clarify import clarify
 
-# -------------------------
-# Build Graph
-# -------------------------
+from backend.route.router import route
+
 
 builder = StateGraph(AmbientState)
 
-# Nodes
-builder.add_node("planner", planner)
-builder.add_node("executor", executor)
-
-# Flow
-builder.add_edge(START, "planner")
-builder.add_edge("planner", "executor")
-builder.add_edge("executor", END)
-
-# Compile with Memory
-graph = builder.compile(
-    checkpointer=memory
+builder.add_node(
+    "understand",
+    understand
 )
 
+builder.add_node(
+    "execute",
+    execute
+)
 
-# -------------------------
-# Local Testing
-# -------------------------
+builder.add_node(
+    "clarify",
+    clarify
+)
 
-if __name__ == "__main__":
+builder.add_edge(
+    START,
+    "understand"
+)
 
-    # Build a RunnableConfig instance for type correctness
-    config = RunnableConfig(configurable={"thread_id": "demo-user"})
+builder.add_conditional_edges(
 
-    state: AmbientState = {
+    "understand",
 
-        "messages": [],
+    route,
 
-        "command": "Turn on bedroom light",
+    {
 
-        "room": "",
+        "execute": "execute",
 
-        "device": "",
+        "clarify": "clarify"
 
-        "action": "",
-
-        "response": ""
     }
 
-    result = graph.invoke(
-        state,
-        config=config
-    )
+)
 
-    print(result)
+builder.add_edge(
+
+    "execute",
+
+    END
+
+)
+
+builder.add_edge(
+
+    "clarify",
+
+    END
+
+)
+
+graph = builder.compile(
+
+    checkpointer=memory
+
+)
