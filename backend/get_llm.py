@@ -28,6 +28,3 @@ def get_llm(
         raise RuntimeError(f"Failed to connect to Groq: {e}")
 
 
-if __name__ == "__main__":
-    llm = get_llm()
-    print(llm.invoke("what is the name of the first president of the united states?"))
