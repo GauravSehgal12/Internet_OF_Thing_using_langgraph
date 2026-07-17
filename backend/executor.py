@@ -3,36 +3,27 @@ from backend.device import update_device
 
 def executor(state):
 
-    room = state["room"]
-    device = state["device"]
-    action = state["action"]
-
-    # ------------------------
-    # Validation
-    # ------------------------
-
-    if not room and device == "Light":
-        return {
-            "response": "Which room's light would you like to control?"
-        }
+    room = state.get("room", "")
+    device = state.get("device", "")
+    action = state.get("action", "")
 
     if not device:
         return {
             "response": "I couldn't determine which device you meant."
         }
 
-    # ------------------------
-    # Build Device Name
-    # ------------------------
+    if device.lower() == "light":
 
-    if device == "Light":
+        if not room:
+            return {
+                "response": "Which room's light would you like to control?"
+            }
+
         device_name = f"{room} Light"
-    else:
-        device_name = device
 
-    # ------------------------
-    # Action Logic
-    # ------------------------
+    else:
+
+        device_name = device
 
     if action == "turn_on":
 
@@ -56,22 +47,12 @@ def executor(state):
             "response": "Unsupported action."
         }
 
-    # ------------------------
-    # Update Smart Home
-    # ------------------------
-
     update_device(
         device_name,
         status
     )
 
-    # ------------------------
-    # Response
-    # ------------------------
-
     return {
 
-        "response": f"{device_name} has been set to {status}.",
-
-        "status": status
+        "response": f"{device_name} has been set to {status}."
     }

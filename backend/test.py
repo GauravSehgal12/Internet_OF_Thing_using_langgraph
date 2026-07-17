@@ -1,8 +1,13 @@
-from backend.planner import planner
+from backend.executor import executor
 
 state = {
-    "messages": [],
-    "command": "Turn on bedroom light",
+
+    "room": "Bedroom",
+
+    "device": "Light",
+
+    "action": "turn_on"
+
 }
 
-print(planner(state))
+print(executor(state))
