@@ -21,6 +21,10 @@ def get_devices():
     return DEVICE_STATUS
 
 
+def get_device_status(device):
+    return DEVICE_STATUS.get(device)
+
+
 def update_device(device, status):
     DEVICE_STATUS[device] = status
 

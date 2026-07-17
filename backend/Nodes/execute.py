@@ -1,34 +1,56 @@
+from langchain_core.messages import AIMessage
+
 from backend.device import update_device
+
+
+ACTION_STATUS = {
+    "turn_on": "ON",
+    "turn_off": "OFF",
+    "lock": "Locked",
+    "unlock": "Unlocked",
+}
 
 
 def execute(state):
 
-    room = state["room"]
+    room = state.get("room")
+    device = state.get("device")
+    action = state.get("action")
 
-    device = state["device"]
+    if not room or not device or not action:
 
-    action = state["action"]
+        response = "I don't have enough information to execute that command."
+
+        return {
+
+            "messages": [
+                AIMessage(content=response)
+            ],
+
+            "response": response
+
+        }
 
     if device.lower() == "light":
         device_name = f"{room} Light"
-    else:
-        device_name = device
-
-    if action == "turn_on":
-        status = "ON"
-
-    elif action == "turn_off":
-        status = "OFF"
-
-    elif action == "lock":
-        status = "Locked"
-
-    elif action == "unlock":
-        status = "Unlocked"
 
     else:
+        device_name = f"{room} {device}"
+
+    status = ACTION_STATUS.get(action)
+
+    if status is None:
+
+        response = "Unsupported action."
+
         return {
-            "response": "Unsupported action."
+
+            "messages": [
+                AIMessage(content=response)
+            ],
+
+            "response": response
+
         }
 
     update_device(
@@ -36,7 +58,14 @@ def execute(state):
         status
     )
 
+    response = f"{device_name} has been set to {status}."
+
     return {
-        "response":
-            f"{device_name} has been set to {status}."
+
+        "messages": [
+            AIMessage(content=response)
+        ],
+
+        "response": response
+
     }
