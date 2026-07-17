@@ -1,137 +1,139 @@
 import streamlit as st
-import requests
 
-# -----------------------------
-# Page Configuration
-# -----------------------------
+from utils import (
+    send_command,
+    get_devices,
+    reset_home,
+)
+
+from styles import PAGE_STYLE
+
 st.set_page_config(
-    page_title="Ambient Smart Home Assistant",
+
+    page_title="Ambient Smart Home",
+
     page_icon="🏠",
+
     layout="wide"
 )
 
-# -----------------------------
+st.markdown(PAGE_STYLE, unsafe_allow_html=True)
+
+# ------------------------
 # Session State
-# -----------------------------
+# ------------------------
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "device_status" not in st.session_state:
-    st.session_state.device_status = {
-        "Bedroom Light": "OFF",
-        "Living Room Light": "OFF",
-        "Kitchen Light": "OFF",
-        "Fan": "OFF",
-        "AC": "OFF",
-        "Door": "Locked"
-    }
+# ------------------------
+# Layout
+# ------------------------
 
-# -----------------------------
+left, right = st.columns([1, 2])
+
+# ========================
 # Sidebar
-# -----------------------------
-with st.sidebar:
+# ========================
+
+with left:
 
     st.title("🏠 Smart Home")
 
-    st.markdown("---")
+    devices = get_devices()
 
-    st.subheader("Device Status")
+    icons = {
 
-    for device, status in st.session_state.device_status.items():
+        "Light": "💡",
 
-        if status in ["ON", "Unlocked"]:
-            st.success(f"{device}: {status}")
+        "Fan": "🌀",
+
+        "AC": "❄",
+
+        "Door": "🔒"
+    }
+
+    for device, status in devices.items():
+
+        if "Light" in device:
+            icon = icons["Light"]
+
+        elif "Fan" in device:
+            icon = icons["Fan"]
+
+        elif "AC" in device:
+            icon = icons["AC"]
+
         else:
-            st.error(f"{device}: {status}")
+            icon = icons["Door"]
 
-    st.markdown("---")
+        css = "status-on"
 
-    if st.button("🗑 Clear Chat"):
-        st.session_state.messages = []
+        if status in ["OFF", "Locked"]:
+
+            css = "status-off"
+
+        st.markdown(
+            f"""
+<div class="device-card">
+<h4>{icon} {device}</h4>
+<p class="{css}">{status}</p>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
+
+    if st.button("🔄 Reset Home"):
+
+        reset_home()
+
         st.rerun()
 
-# -----------------------------
-# Main Page
-# -----------------------------
-st.title("🤖 Ambient Smart Home Assistant")
+# ===========================
+# Chat
+# ===========================
 
-st.caption("Powered by LangGraph + Groq + FastAPI")
+with right:
 
-# Display Chat History
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-
-# -----------------------------
-# Chat Input
-# -----------------------------
-prompt = st.chat_input("Enter your smart home command...")
-
-if prompt:
-
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": prompt
-        }
+    st.markdown(
+        '<div class="chat-title">🤖 Ambient Smart Home Assistant</div>',
+        unsafe_allow_html=True,
     )
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    for msg in st.session_state.messages:
 
-    with st.spinner("Thinking..."):
+        with st.chat_message(msg["role"]):
 
-        try:
+            st.markdown(msg["content"])
 
-            response = requests.post(
-                "http://127.0.0.1:8000/invoke",
-                json={
-                    "command": prompt
-                },
-                timeout=30
-            )
+    prompt = st.chat_input("Control your smart home...")
 
-            if response.status_code == 200:
+    if prompt:
 
-                result = response.json()
+        st.session_state.messages.append(
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        )
 
-                assistant_reply = f"""
-**Action:** {result['action']}
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
-**Device:** {result['device']}
-"""
+        result = send_command(prompt)
 
-                # Update Device Status (simple logic)
+        answer = result["response"]
 
-                action = result["action"].lower()
-                device = result["device"]
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": answer,
+            }
+        )
 
-                if "turn on" in action:
-                    st.session_state.device_status[device] = "ON"
+        with st.chat_message("assistant"):
+            st.markdown(answer)
 
-                elif "turn off" in action:
-                    st.session_state.device_status[device] = "OFF"
-
-                elif "unlock" in action:
-                    st.session_state.device_status[device] = "Unlocked"
-
-                elif "lock" in action:
-                    st.session_state.device_status[device] = "Locked"
-
-            else:
-
-                assistant_reply = f"Server Error ({response.status_code})"
-
-        except Exception as e:
-
-            assistant_reply = str(e)
-
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": assistant_reply
-        }
-    )
-
-    with st.chat_message("assistant"):
-        st.markdown(assistant_reply)
+        st.rerun()
