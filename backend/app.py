@@ -1,36 +1,94 @@
-import os
-import sys
 from fastapi import FastAPI
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import importlib
-langgraph_state = importlib.import_module("graph")
-graph = langgraph_state.graph
+from backend.graph import graph
+from backend.device import (
+    get_devices,
+    reset_devices,
+)
 
-load_dotenv()
+app = FastAPI(
+    title="Ambient Smart Home Assistant",
+    version="1.0"
+)
 
-app = FastAPI(title="Ambient Smart Home Agent API")
 
 class CommandRequest(BaseModel):
     command: str
 
-@app.post("/invoke")
-def invoke_agent(req: CommandRequest):
-    """HTTP Endpoint exposing the compiled LangGraph execution graph."""
-    initial_state = {
-        "command": req.command,
-        "target_device": "",
-        "action_taken": ""
-    }
-    result = graph.invoke(initial_state)
+
+@app.get("/")
+def home():
     return {
-        "device": result["target_device"],
-        "action": result["action_taken"]
+        "message": "Ambient Smart Home Assistant API",
+        "docs": "/docs"
     }
 
+
+@app.get("/health")
+def health():
+    return {
+        "status": "running"
+    }
+
+
+@app.get("/devices")
+def devices():
+
+    return get_devices()
+
+
+@app.post("/reset")
+def reset():
+
+    reset_devices()
+
+    return {
+        "message": "Smart Home Reset Successful"
+    }
+
+
+@app.post("/invoke")
+def invoke(req: CommandRequest):
+
+    result = graph.invoke(
+        {
+            "command": req.command,
+
+            "room": "",
+
+            "device": "",
+
+            "action": "",
+
+            "status": "",
+
+            "response": ""
+        }
+    )
+
+    return {
+
+        "response": result["response"],
+
+        "room": result["room"],
+
+        "device": result["device"],
+
+        "action": result["action"],
+
+        "status": result["status"],
+
+        "devices": get_devices()
+    }
+
+
 if __name__ == "__main__":
+
     import uvicorn
-    print("--- Starting FastAPI LangGraph Service ---")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=8000,
+    )
