@@ -1,0 +1,10 @@
+langgraph
+langchain-groq
+python-dotenv
+langchain
+ollama
+pypdf
+fastapi
+uvicorn
+gradio
+huggingface_hub
