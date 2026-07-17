@@ -1,4 +1,4 @@
-DEVICE_STATUS = {
+DEFAULT_DEVICE_STATUS = {
 
     "Bedroom Light": "OFF",
 
@@ -12,3 +12,19 @@ DEVICE_STATUS = {
 
     "Door": "Locked"
 }
+
+
+DEVICE_STATUS = DEFAULT_DEVICE_STATUS.copy()
+
+
+def get_devices():
+    return DEVICE_STATUS
+
+
+def update_device(device, status):
+    DEVICE_STATUS[device] = status
+
+
+def reset_devices():
+    global DEVICE_STATUS
+    DEVICE_STATUS = DEFAULT_DEVICE_STATUS.copy()
