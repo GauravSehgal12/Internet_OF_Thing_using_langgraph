@@ -6,12 +6,14 @@ BASE_URL = "http://127.0.0.1:8000"
 def send_command(command):
 
     response = requests.post(
-
         f"{BASE_URL}/invoke",
-
         json={"command": command}
-
     )
+
+    print("Status Code:", response.status_code)
+    print("Response Text:", response.text)
+
+    response.raise_for_status()   # Raises if 4xx/5xx
 
     return response.json()
 
