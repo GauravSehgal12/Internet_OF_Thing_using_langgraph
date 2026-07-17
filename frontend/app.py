@@ -1,139 +1,135 @@
+import requests
 import streamlit as st
 
-from utils import (
-    send_command,
-    get_devices,
-    reset_home,
-)
-
-from styles import PAGE_STYLE
+API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(
-
-    page_title="Ambient Smart Home",
-
+    page_title="Smart Home Assistant",
     page_icon="🏠",
-
     layout="wide"
 )
 
-st.markdown(PAGE_STYLE, unsafe_allow_html=True)
-
-# ------------------------
+# -----------------------
 # Session State
-# ------------------------
+# -----------------------
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# ------------------------
-# Layout
-# ------------------------
+if "devices" not in st.session_state:
 
-left, right = st.columns([1, 2])
+    st.session_state.devices = requests.get(
+        f"{API_URL}/devices"
+    ).json()
 
-# ========================
-# Sidebar
-# ========================
+THREAD_ID = "gaurav"
+
+# -----------------------
+# Title
+# -----------------------
+
+st.title("🏠 Smart Home Assistant")
+
+left, right = st.columns([2, 1])
+
+# ===================================================
+# CHAT
+# ===================================================
 
 with left:
 
-    st.title("🏠 Smart Home")
-
-    devices = get_devices()
-
-    icons = {
-
-        "Light": "💡",
-
-        "Fan": "🌀",
-
-        "AC": "❄",
-
-        "Door": "🔒"
-    }
-
-    for device, status in devices.items():
-
-        if "Light" in device:
-            icon = icons["Light"]
-
-        elif "Fan" in device:
-            icon = icons["Fan"]
-
-        elif "AC" in device:
-            icon = icons["AC"]
-
-        else:
-            icon = icons["Door"]
-
-        css = "status-on"
-
-        if status in ["OFF", "Locked"]:
-
-            css = "status-off"
-
-        st.markdown(
-            f"""
-<div class="device-card">
-<h4>{icon} {device}</h4>
-<p class="{css}">{status}</p>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-
-    st.divider()
-
-    if st.button("🔄 Reset Home"):
-
-        reset_home()
-
-        st.rerun()
-
-# ===========================
-# Chat
-# ===========================
-
-with right:
-
-    st.markdown(
-        '<div class="chat-title">🤖 Ambient Smart Home Assistant</div>',
-        unsafe_allow_html=True,
-    )
+    st.subheader("💬 Chat")
 
     for msg in st.session_state.messages:
 
         with st.chat_message(msg["role"]):
+            st.write(msg["content"])
 
-            st.markdown(msg["content"])
-
-    prompt = st.chat_input("Control your smart home...")
+    prompt = st.chat_input("Type your command...")
 
     if prompt:
 
         st.session_state.messages.append(
             {
                 "role": "user",
-                "content": prompt,
+                "content": prompt
             }
         )
 
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        response = requests.post(
 
-        result = send_command(prompt)
+            f"{API_URL}/chat",
 
-        answer = result["response"]
+            json={
+                "thread_id": THREAD_ID,
+                "command": prompt
+            }
+
+        ).json()
+
+        assistant_response = response["response"]
 
         st.session_state.messages.append(
             {
                 "role": "assistant",
-                "content": answer,
+                "content": assistant_response
             }
         )
 
-        with st.chat_message("assistant"):
-            st.markdown(answer)
+        st.session_state.devices = response["devices"]
+
+        st.rerun()
+
+# ===================================================
+# DEVICE DASHBOARD
+# ===================================================
+
+with right:
+
+    st.subheader("🏠 Devices")
+
+    ICONS = {
+        "Bedroom Light": "💡",
+        "Kitchen Light": "💡",
+        "Living Room Light": "💡",
+        "Fan": "🌀",
+        "AC": "❄️",
+        "Door": "🚪"
+    }
+
+    for device, status in st.session_state.devices.items():
+
+        icon = ICONS.get(device, "🔹")
+
+        if status == "ON":
+            emoji = "🟢"
+
+        elif status == "OFF":
+            emoji = "⚪"
+
+        elif status == "Locked":
+            emoji = "🔒"
+
+        elif status == "Unlocked":
+            emoji = "🔓"
+
+        else:
+            emoji = "🔵"
+
+        st.write(f"{icon} **{device}**")
+
+        st.write(f"{emoji} {status}")
+
+        st.divider()
+
+    if st.button("🔄 Reset Devices"):
+
+        response = requests.post(
+            f"{API_URL}/reset"
+        ).json()
+
+        st.session_state.devices = response["devices"]
+
+        st.success(response["message"])
 
         st.rerun()

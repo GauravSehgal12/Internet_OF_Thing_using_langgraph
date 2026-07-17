@@ -1,3 +1,5 @@
+from typing import Dict
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -8,29 +10,55 @@ from backend.device import (
 )
 
 app = FastAPI(
-    title="Ambient Smart Home Assistant",
-    version="1.0"
+    title="Smart Home Assistant",
+    version="1.0.0"
 )
 
 
-class CommandRequest(BaseModel):
+# ----------------------------
+# Request / Response Models
+# ----------------------------
+
+class ChatRequest(BaseModel):
+    thread_id: str
     command: str
 
 
-@app.get("/")
-def home():
-    return {
-        "message": "Ambient Smart Home Assistant API",
-        "docs": "/docs"
+class ChatResponse(BaseModel):
+    response: str
+    devices: Dict[str, str]
+
+
+# ----------------------------
+# Chat Endpoint
+# ----------------------------
+
+@app.post("/chat", response_model=ChatResponse)
+def chat(request: ChatRequest):
+
+    config = {
+        "configurable": {
+            "thread_id": request.thread_id
+        }
     }
 
+    result = graph.invoke(
+        {
+            "messages": [],
+            "command": request.command
+        },
+        config=config
+    )
 
-@app.get("/health")
-def health():
-    return {
-        "status": "running"
-    }
+    return ChatResponse(
+        response=result["response"],
+        devices=get_devices()
+    )
 
+
+# ----------------------------
+# Get All Devices
+# ----------------------------
 
 @app.get("/devices")
 def devices():
@@ -38,57 +66,16 @@ def devices():
     return get_devices()
 
 
+# ----------------------------
+# Reset Devices
+# ----------------------------
+
 @app.post("/reset")
 def reset():
 
     reset_devices()
 
     return {
-        "message": "Smart Home Reset Successful"
-    }
-
-
-@app.post("/invoke")
-def invoke(req: CommandRequest):
-
-    result = graph.invoke(
-        {
-            "command": req.command,
-
-            "room": "",
-
-            "device": "",
-
-            "action": "",
-
-            "status": "",
-
-            "response": ""
-        }
-    )
-
-    return {
-
-        "response": result["response"],
-
-        "room": result["room"],
-
-        "device": result["device"],
-
-        "action": result["action"],
-
-        "status": result["status"],
-
+        "message": "All devices have been reset successfully.",
         "devices": get_devices()
     }
-
-
-if __name__ == "__main__":
-
-    import uvicorn
-
-    uvicorn.run(
-        app,
-        host="127.0.0.1",
-        port=8000,
-    )

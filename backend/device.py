@@ -1,16 +1,16 @@
 DEFAULT_DEVICE_STATUS = {
-
     "Bedroom Light": "OFF",
-
     "Kitchen Light": "OFF",
-
     "Living Room Light": "OFF",
 
-    "Fan": "OFF",
+    "Bedroom Fan": "OFF",
+    "Kitchen Fan": "OFF",
+    "Living Room Fan": "OFF",
 
-    "AC": "OFF",
+    "Bedroom AC": "OFF",
+    "Living Room AC": "OFF",
 
-    "Door": "Locked"
+    "Main Door": "Locked"
 }
 
 
